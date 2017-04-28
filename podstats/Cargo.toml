@@ -1,0 +1,6 @@
+[package]
+name = "podstats"
+version = "0.1.0"
+authors = ["Andrew Michaud <dev@mail.andrewmichaud.com>"]
+
+[dependencies]

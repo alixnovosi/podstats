@@ -2,9 +2,10 @@ extern crate serde;
 extern crate rmp;
 extern crate rmp_serde as rmps;
 
-use std::collections::HashMap;
-use self::serde::{Deserialize, Serialize};
-use self::rmps::{Deserializer, Serializer};
+use std::error::Error;
+use std::fs::File;
+use std::io::prelude::*;
+use std::path::Path;
 
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
 pub struct Subscription {
@@ -13,7 +14,7 @@ pub struct Subscription {
     pub name: String,
     pub directory: String,
     pub backlog_limit: u64,
-    temp_url: String,
+    pub use_title_as_filename: bool,
     feed_state: FeedState,
 }
 
@@ -23,14 +24,25 @@ impl Subscription {
         Subscription{
             url: url.to_string(),
             original_url: url.to_string(),
-            temp_url: "".to_string(),
             name: name.to_string(),
             directory: process_directory(directory),
             backlog_limit: 0,
+            use_title_as_filename: false,
 
-            feed_state: FeedState{},
+            feed_state: FeedState{
+                latest_entry_number: 0,
+            },
         }
     }
+}
+
+pub fn vec_serialize(subs: &Vec<Subscription>) -> Vec<u8> {
+    let op_vec = rmps::to_vec(&subs);
+
+    match op_vec {
+        Ok(t) => return t,
+        Err(_)  => return Vec::new(),
+    };
 }
 
 pub fn serialize(sub: &Subscription) -> Vec<u8> {
@@ -53,6 +65,42 @@ pub fn deserialize(sub_vec: &Vec<u8>) -> Option<Subscription> {
     }
 }
 
+pub fn vec_deserialize(sub_vec: &Vec<u8>) -> Option<Vec<Subscription>> {
+    let slice: &[u8] = sub_vec.as_slice();
+
+    let op_subs = rmps::from_slice(&slice);
+
+    match op_subs {
+        Ok(op_sub) => return Some(op_sub),
+        Err(why) => {
+            println!("err: {:?}", why);
+            return None;
+        },
+    }
+}
+
+pub fn file_deserialize(path: &str) -> Option<Vec<Subscription>> {
+    // Get path.
+    let path = Path::new(&path);
+    let display = path.display();
+
+    // Open path in read-only mode.
+    let mut file = match File::open(&path) {
+        Err(why) => panic!("couldn't open {}: {:?}", display, why),
+        Ok(file) => file,
+    };
+
+    // Read file contents into buffer.
+    let mut buffer = Vec::new();
+    match file.read_to_end(&mut buffer) {
+        Err(why) => panic!("couldn't read {}: {}", display, why.description()),
+
+        Ok(_) => println!("buf len: {:?}", buffer.len()),
+    }
+
+    return vec_deserialize(&buffer);
+}
+
 fn process_directory(directory: Option<&str>) -> String {
     match directory {
         // TODO expand given dir.
@@ -62,8 +110,78 @@ fn process_directory(directory: Option<&str>) -> String {
     }
 }
 
-#[derive(Debug, Default, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Default, Eq, PartialEq, Deserialize, Serialize)]
 struct FeedState {
+    // entries: Vec<Map<String, String>>,
+    // entries_state_dict
+    // queue
+    latest_entry_number: u64,
+    // summary_queue
+    // last_modified
+    // etag
+
 
 }
 
+
+#[test]
+fn serialize_deserialize_test() {
+    let sub = Subscription::new("testurl", "testname", None);
+    let s = serialize(&sub);
+    let re_sub = deserialize(&s);
+
+    assert_eq!(sub, re_sub.unwrap());
+}
+
+#[test]
+fn vec_serialize_deserialize_test() {
+    let sub = Subscription::new("testurl", "testname", None);
+    let mut subs = Vec::new();
+    subs.push(sub);
+
+    let s = vec_serialize(&subs);
+    let re_subs = vec_deserialize(&s);
+
+    assert_eq!(subs, re_subs.unwrap());
+}
+
+#[test]
+fn file_serialize_test() {
+
+    let test_path = "tmp_test.txt";
+
+    // Get sub.
+    let sub = Subscription::new("testurl", "testname", None);
+    let mut subs = Vec::new();
+    subs.push(sub);
+    let s = vec_serialize(&subs);
+
+    // Set up file.
+    let path = Path::new(test_path);
+    let display = path.display();
+
+    // Open a file in write-only mode, returns `io::Result<File>`
+    let mut file = match File::create(&path) {
+        Err(why) => panic!("couldn't create {}: {}",
+                           display,
+                           why.description()),
+        Ok(file) => file,
+    };
+
+    // Write the `LOREM_IPSUM` string to `file`, returns `io::Result<()>`
+    match file.write_all(s.as_slice()) {
+        Err(why) => {
+            panic!("couldn't write to {}: {}", display,
+                                               why.description())
+        },
+        Ok(_) => println!("successfully wrote to {}", display),
+    }
+
+
+    let sub_vec = file_deserialize(test_path).unwrap();
+
+    println!("sub: {:?}", subs);
+    println!("sub: {:?}", sub_vec);
+
+    assert_eq!(subs, sub_vec);
+}

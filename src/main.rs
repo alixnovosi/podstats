@@ -1,5 +1,7 @@
-fn main() {
-    let hello = "Hello world! 🍺";
+#[macro_use]
+extern crate serde_derive;
 
-        println!("{}", hello);
+mod subscription;
+
+fn main() {
 }

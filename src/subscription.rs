@@ -3,6 +3,7 @@ extern crate rmp;
 extern crate rmp_serde as rmps;
 
 use std::error::Error;
+use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
@@ -184,4 +185,6 @@ fn file_serialize_test() {
     println!("sub: {:?}", sub_vec);
 
     assert_eq!(subs, sub_vec);
+
+    fs::remove_file(test_path);
 }

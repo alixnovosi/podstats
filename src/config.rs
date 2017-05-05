@@ -6,16 +6,58 @@ use std::fmt;
 use std::fs::File;
 use std::path::Path;
 
+use itertools::Itertools;
+
 use subscription;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Config {
     pub cache_location: String,
+    subscriptions: Vec<subscription::Subscription>,
 }
 
 impl Config {
     pub fn new(cache_location: Option<String>) -> Config {
-        Config { cache_location: process_location(cache_location).to_string() }
+        Config {
+            cache_location: process_location(cache_location).to_string(),
+            subscriptions: Vec::new(),
+        }
+    }
+
+    pub fn load_cache(&mut self) {
+        self.subscriptions = subscription::file_deserialize(&self.cache_location).unwrap()
+    }
+
+    pub fn get_names(&self) -> Vec<String> {
+        self.subscriptions
+            .clone()
+            .into_iter()
+            .map(|s| s.name)
+            .collect::<Vec<String>>()
+    }
+
+    pub fn get_latest(&self) -> Vec<u64> {
+        self.subscriptions
+            .clone()
+            .into_iter()
+            .map(|s| s.get_latest_entry_number())
+            .collect::<Vec<u64>>()
+    }
+
+    pub fn get_longest(&self) -> subscription::Subscription {
+        self.subscriptions
+            .clone()
+            .into_iter()
+            .sorted_by(|b, a| Ord::cmp(&a.get_latest_entry_number(), &b.get_latest_entry_number()))
+            .into_iter()
+            .collect::<Vec<subscription::Subscription>>()
+            .first()
+            .unwrap()
+            .clone()
+    }
+
+    pub fn get_longest_name(&self) -> String {
+        self.get_longest().name
     }
 }
 
@@ -126,10 +168,6 @@ pub fn write_config(config: Config) {
     };
 
     file.flush();
-}
-
-pub fn load_cache(config: Config) -> Option<Vec<subscription::Subscription>> {
-    return subscription::file_deserialize(&config.cache_location);
 }
 
 #[cfg(test)]

@@ -2,6 +2,7 @@ extern crate serde_yaml as yamls;
 extern crate xdg;
 
 use std::io::prelude::*;
+use std::fmt;
 use std::fs::File;
 use std::path::Path;
 
@@ -14,8 +15,13 @@ pub struct Config {
 
 impl Config {
     pub fn new(cache_location: Option<String>) -> Config {
-
         Config { cache_location: process_location(cache_location).to_string() }
+    }
+}
+
+impl fmt::Display for Config {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:#?}", self)
     }
 }
 
@@ -107,7 +113,7 @@ pub fn write_config(config: Config) {
     let path = Path::new(&config_path);
     let display = path.display();
 
-
+    // TODO: proper error handling
     let mut file = match File::create(&path) {
         Err(why) => panic!("couldn't create {}: {:?}", display, why),
         Ok(file) => file,
@@ -119,7 +125,6 @@ pub fn write_config(config: Config) {
         Err(why) => panic!("couldn't write to file: {}", why),
     };
 
-    println!("Wrote {} bytes.", bytes);
     file.flush();
 }
 

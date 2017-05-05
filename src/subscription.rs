@@ -3,6 +3,7 @@ extern crate rmp;
 extern crate rmp_serde as rmps;
 
 use std::error::Error;
+use std::fmt;
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
@@ -22,7 +23,7 @@ pub struct Subscription {
 impl Subscription {
     pub fn new(url: &str, name: &str, directory: Option<&str>) -> Subscription {
 
-        Subscription{
+        Subscription {
             url: url.to_string(),
             original_url: url.to_string(),
             name: name.to_string(),
@@ -30,10 +31,14 @@ impl Subscription {
             backlog_limit: 0,
             use_title_as_filename: false,
 
-            feed_state: FeedState{
-                latest_entry_number: 0,
-            },
+            feed_state: FeedState { latest_entry_number: 0 },
         }
+    }
+}
+
+impl fmt::Display for Subscription {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:#?}", self)
     }
 }
 
@@ -42,7 +47,7 @@ pub fn vec_serialize(subs: &Vec<Subscription>) -> Vec<u8> {
 
     match op_vec {
         Ok(t) => return t,
-        Err(_)  => return Vec::new(),
+        Err(_) => return Vec::new(),
     };
 }
 
@@ -51,7 +56,7 @@ pub fn serialize(sub: &Subscription) -> Vec<u8> {
 
     match op_vec {
         Ok(t) => return t,
-        Err(_)  => return Vec::new(),
+        Err(_) => return Vec::new(),
     };
 }
 
@@ -74,9 +79,8 @@ pub fn vec_deserialize(sub_vec: &Vec<u8>) -> Option<Vec<Subscription>> {
     match op_subs {
         Ok(op_sub) => return Some(op_sub),
         Err(why) => {
-            println!("err: {:?}", why);
             return None;
-        },
+        }
     }
 }
 
@@ -96,7 +100,7 @@ pub fn file_deserialize(path: &str) -> Option<Vec<Subscription>> {
     match file.read_to_end(&mut buffer) {
         Err(why) => panic!("couldn't read {}: {}", display, why.description()),
 
-        Ok(_) => println!("buf len: {:?}", buffer.len()),
+        Ok(_) => (),
     }
 
     return vec_deserialize(&buffer);
@@ -107,7 +111,7 @@ fn process_directory(directory: Option<&str>) -> String {
         // TODO expand given dir.
         Some(x) => return x.to_string(),
         // TODO properly default str.
-        None    => return "fakedir".to_string(),
+        None => return "fakedir".to_string(),
     }
 }
 
@@ -120,10 +124,13 @@ struct FeedState {
     // summary_queue
     // last_modified
     // etag
-
-
 }
 
+impl fmt::Display for FeedState {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:#?}", self)
+    }
+}
 
 #[test]
 fn serialize_deserialize_test() {
@@ -163,26 +170,18 @@ fn file_serialize_test() {
 
     // Open a file in write-only mode, returns `io::Result<File>`
     let mut file = match File::create(&path) {
-        Err(why) => panic!("couldn't create {}: {}",
-                           display,
-                           why.description()),
+        Err(why) => panic!("couldn't create {}: {}", display, why.description()),
         Ok(file) => file,
     };
 
     // Write the `LOREM_IPSUM` string to `file`, returns `io::Result<()>`
     match file.write_all(s.as_slice()) {
-        Err(why) => {
-            panic!("couldn't write to {}: {}", display,
-                                               why.description())
-        },
-        Ok(_) => println!("successfully wrote to {}", display),
+        Err(why) => panic!("couldn't write to {}: {}", display, why.description()),
+        Ok(_) => (),
     }
 
 
     let sub_vec = file_deserialize(test_path).unwrap();
-
-    println!("sub: {:?}", subs);
-    println!("sub: {:?}", sub_vec);
 
     assert_eq!(subs, sub_vec);
 

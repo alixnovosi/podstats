@@ -2,7 +2,6 @@ extern crate serde_yaml as yamls;
 extern crate xdg;
 
 use std::io::prelude::*;
-use std::fs;
 use std::fs::File;
 use std::path::Path;
 
@@ -16,9 +15,7 @@ pub struct Config {
 impl Config {
     pub fn new(cache_location: Option<String>) -> Config {
 
-        Config{
-            cache_location: process_location(cache_location).to_string(),
-        }
+        Config { cache_location: process_location(cache_location).to_string() }
     }
 }
 
@@ -33,7 +30,7 @@ fn process_location(cache_location: Option<String>) -> String {
     if op_cache_file == None {
         panic!("No puckfetcher cache available");
     }
-    
+
     let path = op_cache_file.unwrap();
 
     let file_str = path.to_str().unwrap().to_string();
@@ -130,37 +127,46 @@ pub fn load_cache(config: Config) -> Option<Vec<subscription::Subscription>> {
     return subscription::file_deserialize(&config.cache_location);
 }
 
-#[test]
-fn test_load() {
-    let test_cache_loc = "testcache";
-    let config = Config{cache_location: test_cache_loc.to_string()};
+#[cfg(test)]
+mod tests {
+    use std::io::prelude::*;
+    use std::fs;
+    use std::fs::File;
+    use std::path::Path;
 
-    let sub = subscription::Subscription::new("testurl", "testname", None);
-    let mut subs = Vec::new();
-    subs.push(sub);
-    let s = subscription::vec_serialize(&subs);
+    use subscription;
+    use config;
 
-    // Set up file.
-    let path = Path::new(test_cache_loc);
-    let display = path.display();
+    #[test]
+    fn test_load() {
+        let test_cache_loc = "testcache";
+        let config = config::Config { cache_location: test_cache_loc.to_string() };
 
-    // Open a file in write-only mode, returns `io::Result<File>`
-    let mut file = match File::create(&path) {
-        Err(why) => panic!("couldn't create {}: {}", display, why),
-        Ok(file) => file,
-    };
+        let sub = subscription::Subscription::new("testurl", "testname", None);
+        let mut subs = Vec::new();
+        subs.push(sub);
+        let s = subscription::vec_serialize(&subs);
 
-    // Write the `LOREM_IPSUM` string to `file`, returns `io::Result<()>`
-    match file.write_all(s.as_slice()) {
-        Err(why) => {
-            panic!("couldn't write to {}: {}", display, why)
-        },
-        Ok(_) => println!("successfully wrote to {}", display),
+        // Set up file.
+        let path = Path::new(test_cache_loc);
+        let display = path.display();
+
+        // Open a file in write-only mode, returns `io::Result<File>`
+        let mut file = match File::create(&path) {
+            Err(why) => panic!("couldn't create {}: {}", display, why),
+            Ok(file) => file,
+        };
+
+        // Write the `LOREM_IPSUM` string to `file`, returns `io::Result<()>`
+        match file.write_all(s.as_slice()) {
+            Err(why) => panic!("couldn't write to {}: {}", display, why),
+            Ok(_) => println!("successfully wrote to {}", display),
+        }
+
+        let re_subs = config::load_cache(config).unwrap();
+
+        assert_eq!(subs, re_subs);
+
+        fs::remove_file(test_cache_loc);
     }
-
-    let re_subs = load_cache(config).unwrap();
-
-    assert_eq!(subs, re_subs);
-
-    fs::remove_file(test_cache_loc);
 }

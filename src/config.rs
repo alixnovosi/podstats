@@ -162,6 +162,7 @@ pub fn write_config(config: Config) {
     };
 
     let res = file.write(op_config.unwrap().as_slice());
+    // TODO actually error check or something.
     let bytes = match res {
         Ok(n) => n,
         Err(why) => panic!("couldn't write to file: {}", why),
@@ -180,9 +181,15 @@ mod tests {
     use subscription;
     use config;
 
-    fn setup_loaded_cache(subs: Option<Vec<subscription::Subscription>>) -> config::Config {
+    fn setup_loaded_cache(loc: Option<&str>,
+                          subs: Option<Vec<subscription::Subscription>>)
+                          -> config::Config {
 
-        let test_cache_loc = "testcache";
+        let test_cache_loc = match loc {
+            Some(l) => l,
+            None => "testcache",
+        };
+
         let mut config = config::Config::new(Some(test_cache_loc.to_string()));
 
         // Allow providing subs, default if none are given.
@@ -219,12 +226,14 @@ mod tests {
 
         config.load_cache();
 
+        fs::remove_file(test_cache_loc);
+
         return config;
     }
 
     #[test]
     fn test_get_names() {
-        let mut conf = setup_loaded_cache(None);
+        let conf = setup_loaded_cache(Some("testcache1"), None);
 
         let mut n = Vec::new();
         n.push("testname1");
@@ -232,15 +241,12 @@ mod tests {
 
         let names = conf.get_names();
 
-        let test_cache_loc = "testcache";
-        fs::remove_file(test_cache_loc);
-
         assert_eq!(n, names);
     }
 
     #[test]
     fn test_get_entry_counts() {
-        let mut conf = setup_loaded_cache(None);
+        let conf = setup_loaded_cache(Some("testcache2"), None);
 
         let mut l_vec = Vec::new();
         l_vec.push(0);
@@ -248,15 +254,11 @@ mod tests {
 
         let latest_vec = conf.get_entry_counts();
 
-        let test_cache_loc = "testcache";
-        fs::remove_file(test_cache_loc);
-
         assert_eq!(l_vec, latest_vec);
     }
 
     #[test]
     fn test_get_highest_entry_count_sub() {
-
         let sub1 = subscription::Subscription::new("testurl1", "testname1", None);
         let sub2 = subscription::Subscription::new("testurl2", "testname2", None);
 
@@ -264,19 +266,15 @@ mod tests {
         subs.push(sub1.clone());
         subs.push(sub2.clone());
 
-        let mut conf = setup_loaded_cache(Some(subs));
+        let conf = setup_loaded_cache(Some("testcache3"), Some(subs));
 
         let sub = conf.get_highest_entry_count_sub();
 
         assert_eq!(sub1, sub);
-
-        let test_cache_loc = "testcache";
-        fs::remove_file(test_cache_loc);
     }
 
     #[test]
     fn test_get_highest_entry_count_sub_name() {
-
         let sub1 = subscription::Subscription::new("testurl1", "testname1", None);
         let sub2 = subscription::Subscription::new("testurl2", "testname2", None);
 
@@ -284,14 +282,10 @@ mod tests {
         subs.push(sub1.clone());
         subs.push(sub2.clone());
 
-        let conf = setup_loaded_cache(Some(subs));
+        let conf = setup_loaded_cache(Some("testcache4"), Some(subs));
 
         let name = conf.get_highest_entry_count_sub_name();
 
         assert_eq!(sub1.name, name);
-
-        // TODO use stainless to do after_each when that doesn't need nightly.
-        let test_cache_loc = "testcache";
-        fs::remove_file(test_cache_loc);
     }
 }

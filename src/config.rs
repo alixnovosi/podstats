@@ -181,6 +181,7 @@ mod tests {
     use config;
 
     fn setup_loaded_cache(subs: Option<Vec<subscription::Subscription>>) -> config::Config {
+
         let test_cache_loc = "testcache";
         let mut config = config::Config::new(Some(test_cache_loc.to_string()));
 
@@ -218,8 +219,6 @@ mod tests {
 
         config.load_cache();
 
-        fs::remove_file(test_cache_loc);
-
         return config;
     }
 
@@ -233,6 +232,9 @@ mod tests {
 
         let names = conf.get_names();
 
+        let test_cache_loc = "testcache";
+        fs::remove_file(test_cache_loc);
+
         assert_eq!(n, names);
     }
 
@@ -245,6 +247,9 @@ mod tests {
         l_vec.push(0);
 
         let latest_vec = conf.get_entry_counts();
+
+        let test_cache_loc = "testcache";
+        fs::remove_file(test_cache_loc);
 
         assert_eq!(l_vec, latest_vec);
     }
@@ -264,6 +269,9 @@ mod tests {
         let sub = conf.get_highest_entry_count_sub();
 
         assert_eq!(sub1, sub);
+
+        let test_cache_loc = "testcache";
+        fs::remove_file(test_cache_loc);
     }
 
     #[test]
@@ -276,10 +284,14 @@ mod tests {
         subs.push(sub1.clone());
         subs.push(sub2.clone());
 
-        let mut conf = setup_loaded_cache(Some(subs));
+        let conf = setup_loaded_cache(Some(subs));
 
         let name = conf.get_highest_entry_count_sub_name();
 
         assert_eq!(sub1.name, name);
+
+        // TODO use stainless to do after_each when that doesn't need nightly.
+        let test_cache_loc = "testcache";
+        fs::remove_file(test_cache_loc);
     }
 }

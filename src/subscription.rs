@@ -87,10 +87,7 @@ pub fn vec_deserialize(sub_vec: &Vec<u8>) -> Option<Vec<Subscription>> {
 
     match op_subs {
         Ok(op_sub) => return Some(op_sub),
-        Err(why) => {
-            panic!("{:#?}", why);
-            return None;
-        }
+        Err(why) => panic!("{:#?}", why),
     }
 }
 

@@ -1,5 +1,7 @@
 #[macro_use]
 extern crate serde_derive;
+#[macro_use]
+extern crate itertools;
 
 mod config;
 mod subscription;
@@ -17,10 +19,11 @@ fn main() {
     let config = config::read_config();
     println!("got config: {:?}", config);
 
-    let conf = config.unwrap();
+    let mut conf = config.unwrap();
 
-    let subs = config::load_cache(conf).unwrap();
-    for (i, sub) in subs.iter().enumerate() {
-        println!("sub {0}:\n{1}\n", i, sub);
-    }
+    conf.load_cache();
+    let highest_count = conf.get_highest_entry_count_sub();
+    let highest_count_name = conf.get_highest_entry_count_sub_name();
+
+    println!("longest: {0}\n{1}", highest_count, highest_count_name);
 }

@@ -2,20 +2,68 @@ extern crate serde_yaml as yamls;
 extern crate xdg;
 
 use std::io::prelude::*;
+use std::fmt;
 use std::fs::File;
 use std::path::Path;
+
+use itertools::Itertools;
 
 use subscription;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Config {
     pub cache_location: String,
+    subscriptions: Vec<subscription::Subscription>,
 }
 
 impl Config {
     pub fn new(cache_location: Option<String>) -> Config {
+        Config {
+            cache_location: process_location(cache_location).to_string(),
+            subscriptions: Vec::new(),
+        }
+    }
 
-        Config { cache_location: process_location(cache_location).to_string() }
+    pub fn load_cache(&mut self) {
+        self.subscriptions = subscription::file_deserialize(&self.cache_location).unwrap()
+    }
+
+    pub fn get_names(&self) -> Vec<String> {
+        self.subscriptions
+            .clone()
+            .into_iter()
+            .map(|s| s.name)
+            .collect::<Vec<String>>()
+    }
+
+    pub fn get_entry_counts(&self) -> Vec<u64> {
+        self.subscriptions
+            .clone()
+            .into_iter()
+            .map(|s| s.get_latest_entry_number())
+            .collect::<Vec<u64>>()
+    }
+
+    pub fn get_highest_entry_count_sub(&self) -> subscription::Subscription {
+        self.subscriptions
+            .clone()
+            .into_iter()
+            .sorted_by(|b, a| Ord::cmp(&a.get_latest_entry_number(), &b.get_latest_entry_number()))
+            .into_iter()
+            .collect::<Vec<subscription::Subscription>>()
+            .first()
+            .unwrap()
+            .clone()
+    }
+
+    pub fn get_highest_entry_count_sub_name(&self) -> String {
+        self.get_highest_entry_count_sub().name
+    }
+}
+
+impl fmt::Display for Config {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:#?}", self)
     }
 }
 
@@ -107,24 +155,20 @@ pub fn write_config(config: Config) {
     let path = Path::new(&config_path);
     let display = path.display();
 
-
+    // TODO: proper error handling
     let mut file = match File::create(&path) {
         Err(why) => panic!("couldn't create {}: {:?}", display, why),
         Ok(file) => file,
     };
 
     let res = file.write(op_config.unwrap().as_slice());
+    // TODO actually error check or something.
     let bytes = match res {
         Ok(n) => n,
         Err(why) => panic!("couldn't write to file: {}", why),
     };
 
-    println!("Wrote {} bytes.", bytes);
     file.flush();
-}
-
-pub fn load_cache(config: Config) -> Option<Vec<subscription::Subscription>> {
-    return subscription::file_deserialize(&config.cache_location);
 }
 
 #[cfg(test)]
@@ -137,15 +181,32 @@ mod tests {
     use subscription;
     use config;
 
-    #[test]
-    fn test_load() {
-        let test_cache_loc = "testcache";
-        let config = config::Config { cache_location: test_cache_loc.to_string() };
+    fn setup_loaded_cache(loc: Option<&str>,
+                          subs: Option<Vec<subscription::Subscription>>)
+                          -> config::Config {
 
-        let sub = subscription::Subscription::new("testurl", "testname", None);
-        let mut subs = Vec::new();
-        subs.push(sub);
-        let s = subscription::vec_serialize(&subs);
+        let test_cache_loc = match loc {
+            Some(l) => l,
+            None => "testcache",
+        };
+
+        let mut config = config::Config::new(Some(test_cache_loc.to_string()));
+
+        // Allow providing subs, default if none are given.
+        let unpacked_subs = match subs {
+            Some(s) => s,
+            None => {
+                let sub1 = subscription::Subscription::new("testurl1", "testname1", None);
+                let sub2 = subscription::Subscription::new("testurl2", "testname2", None);
+
+                let mut subs = Vec::new();
+                subs.push(sub1);
+                subs.push(sub2);
+                subs
+            }
+        };
+
+        let s = subscription::vec_serialize(&unpacked_subs);
 
         // Set up file.
         let path = Path::new(test_cache_loc);
@@ -157,16 +218,74 @@ mod tests {
             Ok(file) => file,
         };
 
-        // Write the `LOREM_IPSUM` string to `file`, returns `io::Result<()>`
+        // Write subs to `file`, returns `io::Result<()>`
         match file.write_all(s.as_slice()) {
             Err(why) => panic!("couldn't write to {}: {}", display, why),
             Ok(_) => println!("successfully wrote to {}", display),
         }
 
-        let re_subs = config::load_cache(config).unwrap();
-
-        assert_eq!(subs, re_subs);
+        config.load_cache();
 
         fs::remove_file(test_cache_loc);
+
+        return config;
+    }
+
+    #[test]
+    fn test_get_names() {
+        let conf = setup_loaded_cache(Some("testcache1"), None);
+
+        let mut n = Vec::new();
+        n.push("testname1");
+        n.push("testname2");
+
+        let names = conf.get_names();
+
+        assert_eq!(n, names);
+    }
+
+    #[test]
+    fn test_get_entry_counts() {
+        let conf = setup_loaded_cache(Some("testcache2"), None);
+
+        let mut l_vec = Vec::new();
+        l_vec.push(0);
+        l_vec.push(0);
+
+        let latest_vec = conf.get_entry_counts();
+
+        assert_eq!(l_vec, latest_vec);
+    }
+
+    #[test]
+    fn test_get_highest_entry_count_sub() {
+        let sub1 = subscription::Subscription::new("testurl1", "testname1", None);
+        let sub2 = subscription::Subscription::new("testurl2", "testname2", None);
+
+        let mut subs = Vec::new();
+        subs.push(sub1.clone());
+        subs.push(sub2.clone());
+
+        let conf = setup_loaded_cache(Some("testcache3"), Some(subs));
+
+        let sub = conf.get_highest_entry_count_sub();
+
+        assert_eq!(sub1, sub);
+    }
+
+    #[test]
+    fn test_get_highest_entry_count_sub_name() {
+        let sub1 = subscription::Subscription::new("testurl1", "testname1", None);
+        let sub2 = subscription::Subscription::new("testurl2", "testname2", None);
+
+        let mut subs = Vec::new();
+        subs.push(sub1.clone());
+        subs.push(sub2.clone());
+
+        let conf = setup_loaded_cache(Some("testcache4"), Some(subs));
+
+        let name = conf.get_highest_entry_count_sub_name();
+
+        assert_eq!(sub1.name, name);
     }
 }

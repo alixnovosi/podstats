@@ -9,7 +9,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 pub struct Subscription {
     pub url: String,
     pub original_url: String,
@@ -31,8 +31,17 @@ impl Subscription {
             backlog_limit: 0,
             use_title_as_filename: false,
 
-            feed_state: FeedState { latest_entry_number: 0 },
+            feed_state: FeedState {
+                latest_entry_number: 0,
+                queue: Vec::new(),
+                entries: Vec::new(),
+                summary_queue: Vec::new(),
+            },
         }
+    }
+
+    pub fn get_latest_entry_number(&self) -> u64 {
+        self.feed_state.latest_entry_number
     }
 }
 
@@ -78,9 +87,7 @@ pub fn vec_deserialize(sub_vec: &Vec<u8>) -> Option<Vec<Subscription>> {
 
     match op_subs {
         Ok(op_sub) => return Some(op_sub),
-        Err(why) => {
-            return None;
-        }
+        Err(why) => panic!("{:#?}", why),
     }
 }
 
@@ -115,15 +122,28 @@ fn process_directory(directory: Option<&str>) -> String {
     }
 }
 
-#[derive(Debug, Default, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Deserialize, Serialize)]
 struct FeedState {
-    // entries: Vec<Map<String, String>>,
+    entries: Vec<Entry>,
     // entries_state_dict
-    // queue
+    queue: Vec<Entry>,
     latest_entry_number: u64,
-    // summary_queue
+    summary_queue: Vec<SummaryEntry>,
     // last_modified
     // etag
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq, Deserialize, Serialize)]
+struct Entry {
+    title: String,
+    urls: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq, Deserialize, Serialize)]
+struct SummaryEntry {
+    is_this_session: bool,
+    number: u64,
+    name: String,
 }
 
 impl fmt::Display for FeedState {

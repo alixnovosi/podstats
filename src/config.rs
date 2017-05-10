@@ -36,7 +36,7 @@ impl Config {
             .collect::<Vec<String>>()
     }
 
-    pub fn get_latest(&self) -> Vec<u64> {
+    pub fn get_entry_counts(&self) -> Vec<u64> {
         self.subscriptions
             .clone()
             .into_iter()
@@ -44,7 +44,7 @@ impl Config {
             .collect::<Vec<u64>>()
     }
 
-    pub fn get_longest(&self) -> subscription::Subscription {
+    pub fn get_highest_entry_count_sub(&self) -> subscription::Subscription {
         self.subscriptions
             .clone()
             .into_iter()
@@ -56,8 +56,8 @@ impl Config {
             .clone()
     }
 
-    pub fn get_longest_name(&self) -> String {
-        self.get_longest().name
+    pub fn get_highest_entry_count_sub_name(&self) -> String {
+        self.get_highest_entry_count_sub().name
     }
 }
 
@@ -180,15 +180,25 @@ mod tests {
     use subscription;
     use config;
 
-    #[test]
-    fn test_load() {
+    fn setup_loaded_cache(subs: Option<Vec<subscription::Subscription>>) -> config::Config {
         let test_cache_loc = "testcache";
-        let config = config::Config { cache_location: test_cache_loc.to_string() };
+        let mut config = config::Config::new(Some(test_cache_loc.to_string()));
 
-        let sub = subscription::Subscription::new("testurl", "testname", None);
-        let mut subs = Vec::new();
-        subs.push(sub);
-        let s = subscription::vec_serialize(&subs);
+        // Allow providing subs, default if none are given.
+        let unpacked_subs = match subs {
+            Some(s) => s,
+            None => {
+                let sub1 = subscription::Subscription::new("testurl1", "testname1", None);
+                let sub2 = subscription::Subscription::new("testurl2", "testname2", None);
+
+                let mut subs = Vec::new();
+                subs.push(sub1);
+                subs.push(sub2);
+                subs
+            }
+        };
+
+        let s = subscription::vec_serialize(&unpacked_subs);
 
         // Set up file.
         let path = Path::new(test_cache_loc);
@@ -200,16 +210,76 @@ mod tests {
             Ok(file) => file,
         };
 
-        // Write the `LOREM_IPSUM` string to `file`, returns `io::Result<()>`
+        // Write subs to `file`, returns `io::Result<()>`
         match file.write_all(s.as_slice()) {
             Err(why) => panic!("couldn't write to {}: {}", display, why),
             Ok(_) => println!("successfully wrote to {}", display),
         }
 
-        let re_subs = config::load_cache(config).unwrap();
-
-        assert_eq!(subs, re_subs);
+        config.load_cache();
 
         fs::remove_file(test_cache_loc);
+
+        return config;
+    }
+
+    #[test]
+    fn test_get_names() {
+        let mut conf = setup_loaded_cache(None);
+
+        let mut n = Vec::new();
+        n.push("testname1");
+        n.push("testname2");
+
+        let names = conf.get_names();
+
+        assert_eq!(n, names);
+    }
+
+    #[test]
+    fn test_get_entry_counts() {
+        let mut conf = setup_loaded_cache(None);
+
+        let mut l_vec = Vec::new();
+        l_vec.push(0);
+        l_vec.push(0);
+
+        let latest_vec = conf.get_entry_counts();
+
+        assert_eq!(l_vec, latest_vec);
+    }
+
+    #[test]
+    fn test_get_highest_entry_count_sub() {
+
+        let sub1 = subscription::Subscription::new("testurl1", "testname1", None);
+        let sub2 = subscription::Subscription::new("testurl2", "testname2", None);
+
+        let mut subs = Vec::new();
+        subs.push(sub1.clone());
+        subs.push(sub2.clone());
+
+        let mut conf = setup_loaded_cache(Some(subs));
+
+        let sub = conf.get_highest_entry_count_sub();
+
+        assert_eq!(sub1, sub);
+    }
+
+    #[test]
+    fn test_get_highest_entry_count_sub_name() {
+
+        let sub1 = subscription::Subscription::new("testurl1", "testname1", None);
+        let sub2 = subscription::Subscription::new("testurl2", "testname2", None);
+
+        let mut subs = Vec::new();
+        subs.push(sub1.clone());
+        subs.push(sub2.clone());
+
+        let mut conf = setup_loaded_cache(Some(subs));
+
+        let name = conf.get_highest_entry_count_sub_name();
+
+        assert_eq!(sub1.name, name);
     }
 }

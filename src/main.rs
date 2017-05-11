@@ -4,18 +4,12 @@ extern crate serde_derive;
 extern crate itertools;
 
 extern crate clap;
-extern crate termion;
-
-use std::io::{Write, stdout, stdin};
 
 use clap::{Arg, App, SubCommand};
-use termion::color;
-use termion::event::Key;
-use termion::input::TermRead;
-use termion::raw::IntoRawMode;
 
 mod config;
 mod subscription;
+mod util;
 
 fn main() {
     let matches = App::new("podstats")
@@ -34,7 +28,7 @@ fn main() {
                  .help("Sets the level of verbosity"))
         .get_matches();
 
-    println!("Loaded podstats !");
+    println!("Loaded podstats!");
 
     let conf_file = match matches.value_of("config") {
         Some(c) => Some(c.to_string()),
@@ -44,64 +38,50 @@ fn main() {
     let mut conf = config::Config::new(conf_file);
     conf.load_cache();
 
-    // Enter raw mode.
-    let mut stdout = stdout().into_raw_mode().unwrap();
-    let stdin = stdin();
+    let prompt = util::Prompt {};
 
-    let mut clear = false;
+    let mut menu_options = Vec::new();
+    menu_options.push("Get names of subscriptions in cache.");
+    menu_options.push("Get entry counts of subscriptions in cache.");
+    menu_options.push("Get sub with highest entry count.");
+    menu_options.push("Get name of sub with highest entry count.");
 
-    // Actually do stuff:
-    for c in stdin.keys() {
+    loop {
+        let res = prompt.select_from_menu(&menu_options);
 
-        // Write to stdout (note that we don't use `println!`)
-        // TODO find out how to get this to print properly.
-        // should be blurb -> wait for key -> display result -> repeat
-        stdout.flush().unwrap();
-        write!(stdout, "What do you want to do? (enter a number)\n\r").unwrap();
-        write!(stdout, "\t1 provide names of podcasts in the cache\n\r").unwrap();
-        write!(stdout,
-               "\t2 provide latest entry numbers for podcasts in the cache\n\r")
-                .unwrap();
-        write!(stdout,
-               "\t3 provide the full subscription in the cache with the most entries\n\r")
-                .unwrap();
-        write!(stdout,
-               "\t4 provide the name of the subscription in the cache with the most entries\n\r")
-                .unwrap();
-        stdout.flush().unwrap();
-
-        match c.unwrap() {
-            Key::Char('q') => {
-                write!(stdout, "Quitting!\n\r").unwrap();
-                break;
-            }
-            Key::Char('1') => {
-                // TODO write a helper for this
-                write!(stdout, "Subscription names:\n\r").unwrap();
-                for (i, item) in conf.get_names().iter().enumerate() {
-                    write!(stdout, "item {}: {}\n\r", i, item).unwrap();
+        match res {
+            Some(n) => {
+                println!("{} was provided", n);
+                // TODO provide fns to something to simplify this.
+                match n {
+                    1 => {
+                        for (i, item) in conf.get_names().iter().enumerate() {
+                            println!("{}: {}", i, item);
+                        }
+                    }
+                    2 => {
+                        for (i, item) in conf.get_entry_counts().iter().enumerate() {
+                            println!("{} entry count: {}", i, item);
+                        }
+                    }
+                    3 => {
+                        let item = conf.get_highest_entry_count_sub();
+                        println!("Sub with highest entry count: {}", item);
+                    }
+                    4 => {
+                        let item = conf.get_highest_entry_count_sub_name();
+                        println!("Name of sub with highest entry count: {}", item);
+                    }
+                    _ => println!("Given invalid option!"),
                 }
             }
-            Key::Char('2') => {
-                write!(stdout, "Subscription entry counts:\n\r").unwrap();
-                for (i, item) in conf.get_entry_counts().iter().enumerate() {
-                    write!(stdout, "item {} entry count: {}\n\r", i, item).unwrap();
-                }
+
+            None => {
+                println!("Quitting!");
+                return;
             }
-            Key::Char('3') => {
-                let item = conf.get_highest_entry_count_sub();
-                // TODO handle sub indentation properly.
-                // regex replace \n with \n\r ?
-                write!(stdout, "Sub with highest entry count: {}\n\r", item).unwrap();
-            }
-            Key::Char('4') => {
-                let item = conf.get_highest_entry_count_sub_name();
-                write!(stdout, "Name of sub with highest entry count: {}\n\r", item).unwrap();
-            }
-            _ => write!(stdout, "who knows\n\r").unwrap(),
         }
 
-        write!(stdout, "\n\r").unwrap();
+        println!("");
     }
-    // Here the destructor is automatically called, and the terminal state is restored.
 }

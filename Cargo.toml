@@ -1,11 +1,11 @@
 [package]
 name = "podstats"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Andrew Michaud <dev@mail.andrewmichaud.com>"]
 license = "BSD-3-Clause"
 keywords = ["podcasts", "statistics", "puckfetcher"]
 description = "provides stats on the cache used by puckfetcher"
-documentation = "https://github.com/andrewmichaud/podstats"
+documentation = "https://docs.rs/crate/podstats"
 homepage = "https://github.com/andrewmichaud/podstats"
 repository = "https://github.com/andrewmichaud/podstats"
 

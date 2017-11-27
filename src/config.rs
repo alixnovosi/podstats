@@ -1,6 +1,7 @@
 extern crate serde_yaml as yamls;
 extern crate xdg;
 
+use std::collections::HashMap;
 use std::fmt;
 use std::fs::File;
 use std::io::prelude::*;
@@ -32,7 +33,7 @@ impl Config {
         self.subscriptions
             .clone()
             .into_iter()
-            .map(|s| s.name)
+            .map(|s| s.metadata.get("name").unwrap().clone())
             .collect::<Vec<String>>()
     }
 
@@ -57,7 +58,23 @@ impl Config {
     }
 
     pub fn get_highest_entry_count_sub_name(&self) -> String {
-        self.get_highest_entry_count_sub().name
+        self.get_highest_entry_count_sub().metadata.get("name").unwrap().clone()
+    }
+
+    pub fn get_metadatas(&self) -> Vec<HashMap<String, String>> {
+        self.subscriptions
+            .clone()
+            .into_iter()
+            .map(|s| s.metadata.clone())
+            .collect::<Vec<HashMap<String, String>>>()
+    }
+
+    pub fn get_entries(&self) -> Vec<Vec<subscription::Entry>> {
+        self.subscriptions
+            .clone()
+            .into_iter()
+            .map(|s| s.feed_state.entries.clone())
+            .collect::<Vec<Vec<subscription::Entry>>>()
     }
 
     pub fn get_earliest_entry_names(&self) -> Vec<String> {

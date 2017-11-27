@@ -50,6 +50,8 @@ fn main() {
     menu_options.push("Get name of sub with highest entry count.");
     menu_options.push("Get the earliest entry for each sub.");
     menu_options.push("Get the latest entry for each sub.");
+    menu_options.push("Get metadatas.");
+    menu_options.push("Get entries.");
 
     loop {
         let res = prompt.select_from_menu(&menu_options);
@@ -86,6 +88,13 @@ fn main() {
                         for (i, item) in conf.get_latest_entry_names().iter().enumerate() {
                             println!("{} latest entry name: {}", i, item);
                         }
+                    7 => {
+                        let item = conf.get_metadatas();
+                        println!("Metadatas: {:?}", item);
+                    }
+                    8 => {
+                        let item = conf.get_entries();
+                        println!("entries: {:?}", item);
                     }
                     _ => println!("Given invalid option!"),
                 }

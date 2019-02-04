@@ -15,8 +15,8 @@ pub struct Subscription {
     pub original_url: String,
     pub name: String,
     pub directory: String,
-    pub backlog_limit: u64,
-    pub use_title_as_filename: bool,
+    pub backlog_limit: Option<u64>,
+    pub use_title_as_filename: Option<bool>,
     feed_state: FeedState,
 }
 
@@ -28,8 +28,8 @@ impl Subscription {
             original_url: url.to_string(),
             name: name.to_string(),
             directory: process_directory(directory),
-            backlog_limit: 0,
-            use_title_as_filename: false,
+            backlog_limit: Some(0),
+            use_title_as_filename: Some(false),
 
             feed_state: FeedState {
                 latest_entry_number: 0,

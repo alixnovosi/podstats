@@ -5,7 +5,7 @@ extern crate itertools;
 
 extern crate clap;
 
-use clap::{Arg, App, SubCommand};
+use clap::{Arg, App};
 
 mod config;
 mod subscription;

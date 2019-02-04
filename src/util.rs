@@ -1,7 +1,7 @@
 extern crate termion;
 
-use std::io::{Write, Stdout, stdout, stdin};
 use std::fmt::Write as FmtWrite;
+use std::io::{stdin, stdout, Stdout, Write};
 
 // use self::termion::color;
 use self::termion::event::Key;
@@ -13,7 +13,6 @@ pub struct Prompt {}
 
 impl Prompt {
     pub fn select_from_menu(&self, menu_items: &Vec<&str>) -> Option<usize> {
-
         // Enter raw mode.
         let mut stdout = stdout().into_raw_mode().unwrap();
         let stdin = stdin();
@@ -21,8 +20,10 @@ impl Prompt {
         // Write to stdout (note that we don't use `println!`)
         // TODO find out how to get this to print properly.
         // should be blurb -> wait for key -> display result -> repeat
-        write_helper(&mut stdout,
-                     "What do you want to do?(enter number, or q to quit)");
+        write_helper(
+            &mut stdout,
+            "What do you want to do?(enter number, or q to quit)",
+        );
         for (i, item) in menu_items.iter().enumerate() {
             // TODO this is bad
             let mut s = String::new();

@@ -1,9 +1,9 @@
 extern crate serde_yaml as yamls;
 extern crate xdg;
 
-use std::io::prelude::*;
 use std::fmt;
 use std::fs::File;
+use std::io::prelude::*;
 use std::path::Path;
 
 use itertools::Itertools;
@@ -173,18 +173,18 @@ pub fn write_config(config: Config) {
 
 #[cfg(test)]
 mod tests {
-    use std::io::prelude::*;
     use std::fs;
     use std::fs::File;
+    use std::io::prelude::*;
     use std::path::Path;
 
-    use subscription;
     use config;
+    use subscription;
 
-    fn setup_loaded_cache(loc: Option<&str>,
-                          subs: Option<Vec<subscription::Subscription>>)
-                          -> config::Config {
-
+    fn setup_loaded_cache(
+        loc: Option<&str>,
+        subs: Option<Vec<subscription::Subscription>>,
+    ) -> config::Config {
         let test_cache_loc = match loc {
             Some(l) => l,
             None => "testcache",

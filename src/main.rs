@@ -5,7 +5,7 @@ extern crate itertools;
 
 extern crate clap;
 
-use clap::{Arg, App};
+use clap::{App, Arg};
 
 mod config;
 mod subscription;
@@ -13,19 +13,23 @@ mod util;
 
 fn main() {
     let matches = App::new("podstats")
-        .version("0.1")
+        .version("0.2.0")
         .author("Andrew Michaud <dev@mail.andrewmichaud.com")
         .about("Reads puckfetcher's msgpack cache and provides stats.")
-        .arg(Arg::with_name("config")
-                 .short("c")
-                 .long("config")
-                 .value_name("FILE")
-                 .help("Sets a custom config file")
-                 .takes_value(true))
-        .arg(Arg::with_name("v")
-                 .short("v")
-                 .multiple(true)
-                 .help("Sets the level of verbosity"))
+        .arg(
+            Arg::with_name("config")
+                .short("c")
+                .long("config")
+                .value_name("FILE")
+                .help("Sets a custom config file")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("v")
+                .short("v")
+                .multiple(true)
+                .help("Sets the level of verbosity"),
+        )
         .get_matches();
 
     println!("Loaded podstats!");

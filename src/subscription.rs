@@ -1,6 +1,6 @@
-extern crate serde;
 extern crate rmp;
 extern crate rmp_serde as rmps;
+extern crate serde;
 
 use std::error::Error;
 use std::fmt;
@@ -22,7 +22,6 @@ pub struct Subscription {
 
 impl Subscription {
     pub fn new(url: &str, name: &str, directory: Option<&str>) -> Subscription {
-
         Subscription {
             url: url.to_string(),
             original_url: url.to_string(),
@@ -175,7 +174,6 @@ fn vec_serialize_deserialize_test() {
 
 #[test]
 fn file_serialize_test() {
-
     let test_path = "tmp_test.txt";
 
     // Get sub.
@@ -199,7 +197,6 @@ fn file_serialize_test() {
         Err(why) => panic!("couldn't write to {}: {}", display, why.description()),
         Ok(_) => (),
     }
-
 
     let sub_vec = file_deserialize(test_path).unwrap();
 

@@ -100,16 +100,15 @@ pub fn read_config() -> Option<Config> {
 
     // Open path in read-only mode.
     let mut file = match File::open(&path) {
-        Err(why) => panic!("couldn't open {}: {:?}", display, why),
         Ok(file) => file,
+        Err(why) => panic!("couldn't open {}: {:?}", display, why),
     };
 
     // Read file contents into buffer.
     let mut buffer = Vec::new();
     match file.read_to_end(&mut buffer) {
-        Err(why) => panic!("couldn't read {}: {}", display, why),
-
         Ok(_) => (),
+        Err(why) => panic!("couldn't read {}: {}", display, why),
     }
 
     let op_config = yamls::from_slice(buffer.as_slice());
@@ -124,8 +123,8 @@ pub fn write_config(config: Config) {
     let op_config = yamls::to_vec(&config);
 
     match op_config {
-        Err(why) => panic!("couldn't encode config: {}", why),
         Ok(_) => (),
+        Err(why) => panic!("couldn't encode config: {}", why),
     }
 
     let xdg_dirs = xdg::BaseDirectories::with_prefix("podstats").unwrap();
@@ -134,19 +133,22 @@ pub fn write_config(config: Config) {
     if op_config_path == None {
         let path_res = xdg_dirs.place_config_file("config.yaml");
         match path_res {
-            Err(why) => panic!("Couldn't find path for config: {}", why),
             Ok(_) => (),
+            Err(why) => panic!("Couldn't find path for config: {}", why),
         };
 
         // Create file.
         let config_path = path_res.unwrap();
         let path = Path::new(&config_path);
         let mut file = match File::create(path) {
-            Err(why) => panic!("couldn't create file: {:?}", why),
             Ok(file) => file,
+            Err(why) => panic!("couldn't create file: {:?}", why),
         };
 
-        file.write_all(b"");
+        match file.write_all(b"") {
+            Ok(_) => (),
+            Err(why) => panic!("failed to write to file: {:?}", why),
+        };
         op_config_path = xdg_dirs.find_config_file("config.yaml");
     }
 
@@ -155,20 +157,22 @@ pub fn write_config(config: Config) {
     let path = Path::new(&config_path);
     let display = path.display();
 
-    // TODO: proper error handling
     let mut file = match File::create(&path) {
-        Err(why) => panic!("couldn't create {}: {:?}", display, why),
         Ok(file) => file,
+        Err(why) => panic!("couldn't create {}: {:?}", display, why),
     };
 
     let res = file.write(op_config.unwrap().as_slice());
-    // TODO actually error check or something.
-    let bytes = match res {
-        Ok(n) => n,
+    // TODO do something with the bytes? figure out how many we should write?
+    match res {
+        Ok(_) => (),
         Err(why) => panic!("couldn't write to file: {}", why),
     };
 
-    file.flush();
+    match file.flush() {
+        Ok(_) => (),
+        Err(why) => panic!("couldn't flush: {}", why),
+    };
 }
 
 #[cfg(test)]
@@ -214,19 +218,22 @@ mod tests {
 
         // Open a file in write-only mode, returns `io::Result<File>`
         let mut file = match File::create(&path) {
-            Err(why) => panic!("couldn't create {}: {}", display, why),
             Ok(file) => file,
+            Err(why) => panic!("couldn't create {}: {}", display, why),
         };
 
         // Write subs to `file`, returns `io::Result<()>`
         match file.write_all(s.as_slice()) {
-            Err(why) => panic!("couldn't write to {}: {}", display, why),
             Ok(_) => println!("successfully wrote to {}", display),
+            Err(why) => panic!("couldn't write to {}: {}", display, why),
         }
 
         config.load_cache();
 
-        fs::remove_file(test_cache_loc);
+        match fs::remove_file(test_cache_loc) {
+            Ok(_) => (),
+            Err(why) => panic!("couldn't remove file: {}", why),
+        }
 
         return config;
     }

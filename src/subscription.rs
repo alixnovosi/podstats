@@ -86,7 +86,7 @@ pub fn vec_deserialize(sub_vec: &Vec<u8>) -> Option<Vec<Subscription>> {
 
     match op_subs {
         Ok(op_sub) => return Some(op_sub),
-        Err(why) => panic!("{:#?}", why),
+        Err(why) => panic!("{:#?}", why.description()),
     }
 }
 
@@ -97,16 +97,15 @@ pub fn file_deserialize(path: &str) -> Option<Vec<Subscription>> {
 
     // Open path in read-only mode.
     let mut file = match File::open(&path) {
-        Err(why) => panic!("couldn't open {}: {:?}", display, why),
         Ok(file) => file,
+        Err(why) => panic!("couldn't open {}: {:?}", display, why.description()),
     };
 
     // Read file contents into buffer.
     let mut buffer = Vec::new();
     match file.read_to_end(&mut buffer) {
-        Err(why) => panic!("couldn't read {}: {}", display, why.description()),
-
         Ok(_) => (),
+        Err(why) => panic!("couldn't read {}: {}", display, why.description()),
     }
 
     return vec_deserialize(&buffer);
@@ -188,19 +187,22 @@ fn file_serialize_test() {
 
     // Open a file in write-only mode, returns `io::Result<File>`
     let mut file = match File::create(&path) {
-        Err(why) => panic!("couldn't create {}: {}", display, why.description()),
         Ok(file) => file,
+        Err(why) => panic!("couldn't create {}: {}", display, why.description()),
     };
 
     // Write the `LOREM_IPSUM` string to `file`, returns `io::Result<()>`
     match file.write_all(s.as_slice()) {
-        Err(why) => panic!("couldn't write to {}: {}", display, why.description()),
         Ok(_) => (),
-    }
+        Err(why) => panic!("couldn't write to {}: {}", display, why.description()),
+    };
 
     let sub_vec = file_deserialize(test_path).unwrap();
 
     assert_eq!(subs, sub_vec);
 
-    fs::remove_file(test_path);
+    match fs::remove_file(test_path) {
+        Ok(_) => (),
+        Err(why) => panic!("couldn't remove file: {}", why.description()),
+    };
 }

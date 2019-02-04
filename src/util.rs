@@ -45,7 +45,12 @@ impl Prompt {
                     let mut s = String::new();
                     write!(&mut s, "{}", e).unwrap();
                     let v = s.clone();
-                    write!(stdout, "{}", v);
+
+                    match write!(stdout, "{}", v) {
+                        Ok(_) => (),
+                        Err(why) => panic!("couldn't write to file: {}", why),
+                    };
+
                     stdout.flush().unwrap();
                     res.push(e);
                 }

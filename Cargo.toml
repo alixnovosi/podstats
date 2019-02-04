@@ -6,20 +6,20 @@ license = "BSD-3-Clause"
 keywords = ["podcasts", "statistics", "puckfetcher"]
 description = "provides stats on the cache used by puckfetcher"
 documentation = "https://docs.rs/crate/podstats"
-homepage = "https://github.com/andrewmichaud/podstats"
-repository = "https://github.com/andrewmichaud/podstats"
+homepage = "https://github.com/alixnovosi/podstats"
+repository = "https://github.com/alixnovosi/podstats"
 
 [dependencies]
 anymap = "^0.12.1"
-clap = "^2.27.1"
-itertools = "^0.7.3"
-rmp = "^0.8.6"
+clap = "^2.31.2"
+itertools = "^0.8.0"
+rmp = "^0.8.7"
 rmp-serde = "^0.13.7"
 serde = "1.0.2"
 serde_derive = "^1.0.21"
 serde_yaml = "^0.7.2"
 termion = "^1.5.1"
-xdg = "^2.1.0"
+xdg = "^2.2.0"
 
 [lib]
 name = "libpodstats"

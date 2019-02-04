@@ -6,8 +6,8 @@ license = "BSD-3-Clause"
 keywords = ["podcasts", "statistics", "puckfetcher"]
 description = "provides stats on the cache used by puckfetcher"
 documentation = "https://docs.rs/crate/podstats"
-homepage = "https://github.com/andrewmichaud/podstats"
-repository = "https://github.com/andrewmichaud/podstats"
+homepage = "https://github.com/alixnovosi/podstats"
+repository = "https://github.com/alixnovosi/podstats"
 
 [dependencies]
 clap = "^2.24.1"

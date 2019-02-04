@@ -42,6 +42,20 @@ impl Subscription {
     pub fn get_latest_entry_number(&self) -> u64 {
         self.feed_state.latest_entry_number
     }
+
+    pub fn get_earliest_entry_name(&self) -> String {
+        return match self.feed_state.entries.last() {
+            Some(entry) => entry.title.to_string(),
+            None => "".to_string(),
+        }.clone();
+    }
+
+    pub fn get_latest_entry_name(&self) -> String {
+        return match self.feed_state.entries.first() {
+            Some(entry) => entry.title.to_string(),
+            None => "".to_string(),
+        }.clone();
+    }
 }
 
 impl fmt::Display for Subscription {
@@ -112,11 +126,11 @@ pub fn file_deserialize(path: &str) -> Option<Vec<Subscription>> {
 }
 
 fn process_directory(directory: Option<&str>) -> String {
-    match directory {
+    return match directory {
         // TODO expand given dir.
-        Some(x) => return x.to_string(),
+        Some(x) => x.to_string(),
         // TODO properly default str.
-        None => return "fakedir".to_string(),
+        None => "fakedir".to_string(),
     }
 }
 

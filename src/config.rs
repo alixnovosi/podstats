@@ -59,6 +59,22 @@ impl Config {
     pub fn get_highest_entry_count_sub_name(&self) -> String {
         self.get_highest_entry_count_sub().name
     }
+
+    pub fn get_earliest_entry_names(&self) -> Vec<String> {
+        self.subscriptions
+            .clone()
+            .into_iter()
+            .map(|s| s.get_earliest_entry_name())
+            .collect::<Vec<String>>()
+    }
+
+    pub fn get_latest_entry_names(&self) -> Vec<String> {
+        self.subscriptions
+            .clone()
+            .into_iter()
+            .map(|s| s.get_latest_entry_name())
+            .collect::<Vec<String>>()
+    }
 }
 
 impl fmt::Display for Config {

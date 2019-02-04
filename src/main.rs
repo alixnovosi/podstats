@@ -48,6 +48,8 @@ fn main() {
     menu_options.push("Get entry counts of subscriptions in cache.");
     menu_options.push("Get sub with highest entry count.");
     menu_options.push("Get name of sub with highest entry count.");
+    menu_options.push("Get the earliest entry for each sub.");
+    menu_options.push("Get the latest entry for each sub.");
 
     loop {
         let res = prompt.select_from_menu(&menu_options);
@@ -74,6 +76,16 @@ fn main() {
                     4 => {
                         let item = conf.get_highest_entry_count_sub_name();
                         println!("Name of sub with highest entry count: {}", item);
+                    }
+                    5 => {
+                        for (i, item) in conf.get_earliest_entry_names().iter().enumerate() {
+                            println!("{} earliest entry name: {}", i, item);
+                        }
+                    }
+                    6 => {
+                        for (i, item) in conf.get_latest_entry_names().iter().enumerate() {
+                            println!("{} latest entry name: {}", i, item);
+                        }
                     }
                     _ => println!("Given invalid option!"),
                 }

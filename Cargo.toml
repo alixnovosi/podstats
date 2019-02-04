@@ -10,6 +10,7 @@ homepage = "https://github.com/alixnovosi/podstats"
 repository = "https://github.com/alixnovosi/podstats"
 
 [dependencies]
+anymap = "^0.12.1"
 clap = "^2.31.2"
 itertools = "^0.8.0"
 rmp = "^0.8.7"

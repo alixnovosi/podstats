@@ -1,10 +1,10 @@
+extern crate serde;
 extern crate rmp;
 extern crate rmp_serde as rmps;
-extern crate serde;
 
+use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;
-use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
@@ -13,48 +13,23 @@ use std::path::Path;
 pub struct Subscription {
     pub url: String,
     pub original_url: String,
-    pub name: String,
     pub directory: String,
-    pub backlog_limit: Option<u64>,
-    pub use_title_as_filename: Option<bool>,
-    feed_state: FeedState,
+
+    // // Puckfetcher < 1.1.1 or whatever.
+    // pub name: String,
+    // pub backlog_limit: u64,
+    // pub use_title_as_filename: bool,
+
+    // Puckfetcher >=1.1.1 or whatever.
+    settings: Settings,
+    pub metadata: HashMap<String, String>,
+    pub feed_state: FeedState,
 }
 
 impl Subscription {
-    pub fn new(url: &str, name: &str, directory: Option<&str>) -> Subscription {
-        Subscription {
-            url: url.to_string(),
-            original_url: url.to_string(),
-            name: name.to_string(),
-            directory: process_directory(directory),
-            backlog_limit: Some(0),
-            use_title_as_filename: Some(false),
-
-            feed_state: FeedState {
-                latest_entry_number: 0,
-                queue: Vec::new(),
-                entries: Vec::new(),
-                summary_queue: Vec::new(),
-            },
-        }
-    }
 
     pub fn get_latest_entry_number(&self) -> u64 {
         self.feed_state.latest_entry_number
-    }
-
-    pub fn get_earliest_entry_name(&self) -> String {
-        return match self.feed_state.entries.last() {
-            Some(entry) => entry.title.to_string(),
-            None => "".to_string(),
-        }.clone();
-    }
-
-    pub fn get_latest_entry_name(&self) -> String {
-        return match self.feed_state.entries.first() {
-            Some(entry) => entry.title.to_string(),
-            None => "".to_string(),
-        }.clone();
     }
 }
 
@@ -100,7 +75,7 @@ pub fn vec_deserialize(sub_vec: &Vec<u8>) -> Option<Vec<Subscription>> {
 
     match op_subs {
         Ok(op_sub) => return Some(op_sub),
-        Err(why) => panic!("{:#?}", why.description()),
+        Err(why) => panic!("{:#?}", why),
     }
 }
 
@@ -111,51 +86,62 @@ pub fn file_deserialize(path: &str) -> Option<Vec<Subscription>> {
 
     // Open path in read-only mode.
     let mut file = match File::open(&path) {
+        Err(why) => panic!("couldn't open {}: {:?}", display, why),
         Ok(file) => file,
-        Err(why) => panic!("couldn't open {}: {:?}", display, why.description()),
     };
 
     // Read file contents into buffer.
     let mut buffer = Vec::new();
     match file.read_to_end(&mut buffer) {
-        Ok(_) => (),
         Err(why) => panic!("couldn't read {}: {}", display, why.description()),
+
+        Ok(_) => (),
     }
 
     return vec_deserialize(&buffer);
 }
 
 fn process_directory(directory: Option<&str>) -> String {
-    return match directory {
+    match directory {
         // TODO expand given dir.
-        Some(x) => x.to_string(),
+        Some(x) => return x.to_string(),
         // TODO properly default str.
-        None => "fakedir".to_string(),
+        None => return "fakedir".to_string(),
     }
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq, Deserialize, Serialize)]
-struct FeedState {
-    entries: Vec<Entry>,
+pub struct FeedState {
+    pub entries: Vec<Entry>,
     // entries_state_dict
-    queue: Vec<Entry>,
-    latest_entry_number: u64,
-    summary_queue: Vec<SummaryEntry>,
+    pub queue: Vec<Entry>,
+    pub latest_entry_number: u64,
+    pub summary_queue: Vec<SummaryEntry>,
     // last_modified
     // etag
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq, Deserialize, Serialize)]
-struct Entry {
-    title: String,
-    urls: Vec<String>,
+struct Settings {
+    use_title_as_filename: bool,
+    backlog_limit: u64,
+    set_tags: bool,
+    overwrite_title: bool,
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq, Deserialize, Serialize)]
-struct SummaryEntry {
-    is_this_session: bool,
-    number: u64,
-    name: String,
+pub struct Entry {
+    title: String,
+    urls: Vec<String>,
+    #[serde(default="HashMap::new")]
+    metadata: HashMap<String, String>,
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq, Deserialize, Serialize)]
+pub struct SummaryEntry {
+    pub is_this_session: bool,
+    pub number: u64,
+    pub name: String,
 }
 
 impl fmt::Display for FeedState {
@@ -187,6 +173,7 @@ fn vec_serialize_deserialize_test() {
 
 #[test]
 fn file_serialize_test() {
+
     let test_path = "tmp_test.txt";
 
     // Get sub.
@@ -201,22 +188,20 @@ fn file_serialize_test() {
 
     // Open a file in write-only mode, returns `io::Result<File>`
     let mut file = match File::create(&path) {
-        Ok(file) => file,
         Err(why) => panic!("couldn't create {}: {}", display, why.description()),
+        Ok(file) => file,
     };
 
     // Write the `LOREM_IPSUM` string to `file`, returns `io::Result<()>`
     match file.write_all(s.as_slice()) {
-        Ok(_) => (),
         Err(why) => panic!("couldn't write to {}: {}", display, why.description()),
-    };
+        Ok(_) => (),
+    }
+
 
     let sub_vec = file_deserialize(test_path).unwrap();
 
     assert_eq!(subs, sub_vec);
 
-    match fs::remove_file(test_path) {
-        Ok(_) => (),
-        Err(why) => panic!("couldn't remove file: {}", why.description()),
-    };
+    fs::remove_file(test_path);
 }

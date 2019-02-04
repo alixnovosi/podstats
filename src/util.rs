@@ -43,7 +43,7 @@ impl Prompt {
                 Key::Char('\n') => break,
                 Key::Char(e) => {
                     let mut s = String::new();
-                    write!(&mut s, "{}", e).unwrap();
+                    let _ = write!(&mut s, "{}", e).unwrap();
                     let v = s.clone();
 
                     match write!(stdout, "{}", v) {

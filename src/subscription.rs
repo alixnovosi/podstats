@@ -1,6 +1,6 @@
-extern crate serde;
 extern crate rmp;
 extern crate rmp_serde as rmps;
+extern crate serde;
 
 use std::error::Error;
 use std::fmt;
@@ -15,21 +15,20 @@ pub struct Subscription {
     pub original_url: String,
     pub name: String,
     pub directory: String,
-    pub backlog_limit: u64,
-    pub use_title_as_filename: bool,
+    pub backlog_limit: Option<u64>,
+    pub use_title_as_filename: Option<bool>,
     feed_state: FeedState,
 }
 
 impl Subscription {
     pub fn new(url: &str, name: &str, directory: Option<&str>) -> Subscription {
-
         Subscription {
             url: url.to_string(),
             original_url: url.to_string(),
             name: name.to_string(),
             directory: process_directory(directory),
-            backlog_limit: 0,
-            use_title_as_filename: false,
+            backlog_limit: Some(0),
+            use_title_as_filename: Some(false),
 
             feed_state: FeedState {
                 latest_entry_number: 0,
@@ -42,6 +41,20 @@ impl Subscription {
 
     pub fn get_latest_entry_number(&self) -> u64 {
         self.feed_state.latest_entry_number
+    }
+
+    pub fn get_earliest_entry_name(&self) -> String {
+        return match self.feed_state.entries.last() {
+            Some(entry) => entry.title.to_string(),
+            None => "".to_string(),
+        }.clone();
+    }
+
+    pub fn get_latest_entry_name(&self) -> String {
+        return match self.feed_state.entries.first() {
+            Some(entry) => entry.title.to_string(),
+            None => "".to_string(),
+        }.clone();
     }
 }
 
@@ -87,7 +100,7 @@ pub fn vec_deserialize(sub_vec: &Vec<u8>) -> Option<Vec<Subscription>> {
 
     match op_subs {
         Ok(op_sub) => return Some(op_sub),
-        Err(why) => panic!("{:#?}", why),
+        Err(why) => panic!("{:#?}", why.description()),
     }
 }
 
@@ -98,27 +111,26 @@ pub fn file_deserialize(path: &str) -> Option<Vec<Subscription>> {
 
     // Open path in read-only mode.
     let mut file = match File::open(&path) {
-        Err(why) => panic!("couldn't open {}: {:?}", display, why),
         Ok(file) => file,
+        Err(why) => panic!("couldn't open {}: {:?}", display, why.description()),
     };
 
     // Read file contents into buffer.
     let mut buffer = Vec::new();
     match file.read_to_end(&mut buffer) {
-        Err(why) => panic!("couldn't read {}: {}", display, why.description()),
-
         Ok(_) => (),
+        Err(why) => panic!("couldn't read {}: {}", display, why.description()),
     }
 
     return vec_deserialize(&buffer);
 }
 
 fn process_directory(directory: Option<&str>) -> String {
-    match directory {
+    return match directory {
         // TODO expand given dir.
-        Some(x) => return x.to_string(),
+        Some(x) => x.to_string(),
         // TODO properly default str.
-        None => return "fakedir".to_string(),
+        None => "fakedir".to_string(),
     }
 }
 
@@ -175,7 +187,6 @@ fn vec_serialize_deserialize_test() {
 
 #[test]
 fn file_serialize_test() {
-
     let test_path = "tmp_test.txt";
 
     // Get sub.
@@ -190,20 +201,22 @@ fn file_serialize_test() {
 
     // Open a file in write-only mode, returns `io::Result<File>`
     let mut file = match File::create(&path) {
-        Err(why) => panic!("couldn't create {}: {}", display, why.description()),
         Ok(file) => file,
+        Err(why) => panic!("couldn't create {}: {}", display, why.description()),
     };
 
     // Write the `LOREM_IPSUM` string to `file`, returns `io::Result<()>`
     match file.write_all(s.as_slice()) {
-        Err(why) => panic!("couldn't write to {}: {}", display, why.description()),
         Ok(_) => (),
-    }
-
+        Err(why) => panic!("couldn't write to {}: {}", display, why.description()),
+    };
 
     let sub_vec = file_deserialize(test_path).unwrap();
 
     assert_eq!(subs, sub_vec);
 
-    fs::remove_file(test_path);
+    match fs::remove_file(test_path) {
+        Ok(_) => (),
+        Err(why) => panic!("couldn't remove file: {}", why.description()),
+    };
 }
